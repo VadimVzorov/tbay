@@ -25,6 +25,7 @@ from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, Table, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy import func
 
 #user --> item owner 1:many
 #user ---> bid item
@@ -37,7 +38,7 @@ class User(Base):
     password = Column (String, nullable=False)
     my_items = relationship("Item", secondary="owner_association", backref="owner")
     # my_items_for_bids = relationship("Item", secondary="bid_association", backref="bidder")
-    my_bids = relationship("Bid", uselist=False, backref="bids")
+    my_bids = relationship("Bid", backref="bidder")
 
 class Item(Base):
 #FIXME: What is Base?
@@ -48,12 +49,14 @@ class Item(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
     start_time = Column(DateTime, default=datetime.utcnow)
+    bids = relationship("Bid", backref="lot")
 
 class Bid(Base):
     __tablename__ = "bids"
     id = Column(Integer, primary_key=True)
     amount = Column(Integer, nullable=False)
-    bid_owner = Column(Integer, ForeignKey("users.id"), nullable=True)
+    bid_owner = Column(Integer, ForeignKey("users.id"), nullable=False)
+    item = Column(Integer, ForeignKey("items.id"), nullable=False)
 
 
 owner_item_table = Table("owner_association", Base.metadata,
@@ -87,17 +90,19 @@ nastya.my_items = [ball, pen, computer]
 # vadim.my_bids=[]
 # emily.my_items_for_bids = [pen, computer]
 # emily.my_bids=[]
+bid1 = Bid(amount=700, bidder=vadim, lot=ball)
+bid2= Bid(amount=900, bidder=emily, lot=ball)
 
-session.add_all([vadim, emily, nastya, ball, pen, computer])
+session.add_all([vadim, emily, nastya, ball, pen, computer, bid1])
 session.commit()
+import pdb; pdb.set_trace()
 
-bid1 = Bid(123, bid_owner=vadim)
-session.add(bid1)
-session.commit()
 
-for x in vadim.my_items:
+for x in nastya.my_items:
     print(x.name)
 print(ball.owner[0].username)
 
-print(vadim.bids)
+print(vadim.my_bids[0].amount)
+print(ball.bids[0].bidder.username)
+
 # print(computer.bidder)
